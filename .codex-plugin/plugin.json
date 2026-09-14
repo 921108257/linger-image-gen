@@ -1,0 +1,26 @@
+{
+  "name": "linger-image-gen",
+  "version": "0.1.0",
+  "description": "Generate and edit images with GPT-Image-2.5 Flare and Sunburst through a configurable API.",
+  "license": "MIT",
+  "repository": "https://github.com/921108257/linger-image-gen",
+  "homepage": "https://github.com/921108257/linger-image-gen#readme",
+  "author": {
+    "name": "Linger"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Linger Image Gen",
+    "shortDescription": "Image generation with Flare and Sunburst.",
+    "longDescription": "Generate, edit, and batch-create images using GPT-Image-2.5 Flare or Sunburst. Configure your API endpoint, API key, enabled models, and default model with the npx installer.",
+    "developerName": "Linger",
+    "category": "Productivity",
+    "capabilities": ["Write"],
+    "brandColor": "#087F8C",
+    "defaultPrompt": [
+      "Use Linger Image Gen to create a product photo.",
+      "Use Linger Image Gen to edit this image.",
+      "Use Sunburst to create a transparent PNG."
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "linger-image-gen",
+  "version": "0.1.0",
+  "description": "Linger Image Gen: guided Codex plugin installer for GPT-Image-2.5 Flare and Sunburst",
+  "author": "Linger",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/921108257/linger-image-gen.git"
+  },
+  "homepage": "https://github.com/921108257/linger-image-gen#readme",
+  "bugs": { "url": "https://github.com/921108257/linger-image-gen/issues" },
+  "keywords": ["codex", "codex-plugin", "image-generation", "gpt-image", "linger"],
+  "type": "module",
+  "bin": { "linger-image-gen": "bin/linger-image-gen.mjs" },
+  "engines": { "node": ">=22.13.0" },
+  "files": ["bin/", "src/", ".codex-plugin/", "skills/", "README.md", "LICENSE"],
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
+  "scripts": {
+    "test": "node --test",
+    "check": "node scripts/check.mjs",
+    "prepack": "npm run check"
+  },
+  "dependencies": { "@inquirer/prompts": "^8.7.2" },
+  "license": "MIT"
+}
