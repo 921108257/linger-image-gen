@@ -2,6 +2,7 @@ import { input, password, checkbox, select, confirm } from '@inquirer/prompts';
 import { MODELS, readConfig, normalizeBaseApi, saveConfig, configPath } from '../skills/linger-image-gen/scripts/lib/config.mjs';
 import { HELP, parseCommand, runtime } from '../skills/linger-image-gen/scripts/lib/runtime.mjs';
 import { installPlugin } from './installer.mjs';
+import { installDsh, listProfiles, manualCommand, resolveDsh, dshHome } from './dsh.mjs';
 
 const validate = (fn) => (value) => { try { fn(value); return true; } catch (error) { return error.message; } };
 
@@ -35,6 +36,40 @@ export async function collectConfig(previous, prompts = { input, password, check
   return { version: 1, baseApi, apiKey, enabledModels, defaultModel };
 }
 
+/**
+ * Install into DeepSeek Harness when a dsh installation is present.
+ * @param config - the validated configuration.
+ * @param values - parsed `install` options.
+ * @param log - output sink.
+ * @returns the dsh result, or undefined when the surface was skipped.
+ */
+export async function installDshSurface(config, values, log = console.log) {
+  if (values['skip-dsh']) {
+    log('已按 --skip-dsh 跳过 DeepSeek Harness 安装。');
+    return undefined;
+  }
+  const dsh = resolveDsh();
+  const profiles = listProfiles({ home: dshHome() });
+  if (!dsh && !profiles.length) {
+    log('未检测到 DeepSeek Harness（dsh），跳过该平台。安装 dsh 后可运行 npx linger-image-gen install 重新检测。');
+    return { activation: 'missing-dsh', profile: undefined, skipped: profiles.length === 0 };
+  }
+  const result = await installDsh(config, { profile: values.profile, dsh, profiles });
+  if (result.activated) {
+    log(`DeepSeek Harness：插件已安装到 ${result.profile} profile（${result.directory}）。`);
+    log('重启 dsh 后生效：systemctl --user restart dsh-web，或重新运行 dsh web。');
+  } else {
+    const reason = {
+      'missing-dsh': '未找到 dsh CLI',
+      failed: 'dsh 安装失败',
+    }[result.activation];
+    log(`DeepSeek Harness：${reason}；插件未写入 ${result.profile ?? '任何'} profile。`);
+    if (result.detail) log(result.detail);
+    log(`请在可用的 dsh 环境中运行：${manualCommand(result.profile)}`);
+  }
+  return result;
+}
+
 export async function main(args = process.argv.slice(2)) {
   const { command, values } = parseCommand(args);
   if (command === 'help') return console.log(HELP);
@@ -53,11 +88,15 @@ export async function main(args = process.argv.slice(2)) {
   const result = await installPlugin(config, { skipCodex: values['skip-codex'] });
   console.log(`\n插件文件：${result.destination}\n配置文件：${result.configFile}`);
   if (result.activated) {
-    console.log('插件已安装到 Codex。请打开新任务，使用 $linger-image-gen 生成或编辑图片。');
+    console.log('Codex：插件已安装。请打开新任务，使用 $linger-image-gen 生成或编辑图片。');
   } else {
     const reason = { skipped: '已跳过 Codex 激活', 'missing-cli': '未找到 Codex CLI', failed: 'Codex 激活失败' }[result.activation];
-    console.log(`${reason}；插件文件和 personal marketplace 已就绪。\n请在可用的 Codex CLI 中运行：codex plugin add ${result.selector}\n或从 Codex 插件页安装，再打开新任务。`);
+    console.log(`Codex：${reason}；插件文件和 personal marketplace 已就绪。\n请在可用的 Codex CLI 中运行：codex plugin add ${result.selector}\n或从 Codex 插件页安装，再打开新任务。`);
     if (result.activation === 'failed') process.exitCode = 1;
   }
-  console.log(`codex://plugins/linger-image-gen?marketplacePath=${encodeURIComponent(result.marketplaceFile)}`);
+  const dsh = await installDshSurface(config, values);
+  if (dsh?.activation === 'failed' && process.exitCode !== 1) process.exitCode = 1;
+  if (result.activated) {
+    console.log(`codex://plugins/linger-image-gen?marketplacePath=${encodeURIComponent(result.marketplaceFile)}`);
+  }
 }

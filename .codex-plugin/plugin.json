@@ -1,7 +1,7 @@
 {
   "name": "linger-image-gen",
-  "version": "0.1.0",
-  "description": "Generate and edit images with GPT-Image-2.5 Flare and Sunburst through a configurable API.",
+  "version": "0.2.0",
+  "description": "Generate and edit images with GPT-Image-2.5 Flare, GPT-Image-2.5 Sunburst, and GPT-Image-2.6 Sunburst through a configurable API. The same package also installs as a DeepSeek Harness plugin.",
   "license": "MIT",
   "repository": "https://github.com/921108257/linger-image-gen",
   "homepage": "https://github.com/921108257/linger-image-gen#readme",
@@ -11,8 +11,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Linger Image Gen",
-    "shortDescription": "Image generation with Flare and Sunburst.",
-    "longDescription": "Generate, edit, and batch-create images using GPT-Image-2.5 Flare or Sunburst. Configure your API endpoint, API key, enabled models, and default model with the npx installer.",
+    "shortDescription": "Images with Flare and Sunburst 2.5/2.6.",
+    "longDescription": "Generate, edit, and batch-create images using GPT-Image-2.5 Flare, GPT-Image-2.5 Sunburst, or GPT-Image-2.6 Sunburst. Configure your API endpoint, API key, enabled models, and default model with the npx installer.",
     "developerName": "Linger",
     "category": "Productivity",
     "capabilities": ["Write"],

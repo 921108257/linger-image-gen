@@ -8,18 +8,19 @@ import { checkModels, createImages, validateInputs, validateJob } from './api.mj
 export const HELP = `Linger Image Gen
 
   linger-image-gen                         交互安装向导
-  linger-image-gen install [--skip-codex]   安装插件并配置
+  linger-image-gen install [--skip-codex] [--skip-dsh] [--profile NAME]
+                                           安装插件并配置（Codex 与 DeepSeek Harness）
   linger-image-gen configure               修改 API 配置和已启用模型
   linger-image-gen config                  查看配置（隐藏 API Key）
   linger-image-gen models                  查看固定模型和启用状态
   linger-image-gen doctor                  检查 API 连接（GET /models，不生成图片）
-  linger-image-gen generate --prompt "..." [--model flare|sunburst] [--out path.png]
+  linger-image-gen generate --prompt "..." [--model ${MODELS.map((m) => m.alias).join('|')}] [--out path.png]
   linger-image-gen edit --image input.png --prompt "..." [--mask mask.png]
   linger-image-gen generate-batch --input jobs.jsonl [--out-dir output/imagegen]
 
 图片选项：
   --prompt-file PATH       从 UTF-8 文件读取提示词，与 --prompt 二选一
-  --model ID              只能使用已启用的 flare / sunburst 或其固定完整 ID
+  --model ID              只能使用已启用的 ${MODELS.map((m) => m.alias).join(' / ')} 或其固定完整 ID
   --n 1                   同一个提示词的图片数量（1–10）
   --size WIDTHxHEIGHT     例如 1024x1024、1536x1024、auto
   --quality VALUE         auto / low / medium / high / xhigh / max
@@ -47,7 +48,8 @@ export function parseCommand(args) {
   const [command = 'install', ...rest] = args;
   if (['--help', '-h', 'help'].includes(command)) return { command: 'help', values: {} };
   const options = {
-    install: { 'skip-codex': { type: 'boolean' } }, configure: {}, config: {}, models: {}, doctor: {},
+    install: { 'skip-codex': { type: 'boolean' }, 'skip-dsh': { type: 'boolean' }, profile: { type: 'string' } },
+    configure: {}, config: {}, models: {}, doctor: {},
     generate: GENERATION_OPTIONS, edit: GENERATION_OPTIONS,
     'generate-batch': {
       input: { type: 'string' }, 'out-dir': { type: 'string' }, timeout: { type: 'string' },

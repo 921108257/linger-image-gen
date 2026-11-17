@@ -10,8 +10,9 @@ A bare origin gets `/v1` appended; an explicit path such as `/api/v1` is preserv
 Authorization is `Bearer API_KEY`. Credentials are never sent to image download hosts.
 HTTP redirects are rejected, so enter the final API base URL.
 
-Only `gpt-image-2.5-flare` and `gpt-image-2.5-sunburst` are accepted, and only when
-enabled in the user's config. The CLI does not accept custom model IDs.
+Only `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst`, and `gpt-image-2.6-sunburst`
+are accepted, and only when enabled in the user's config. The aliases are `flare`,
+`sunburst`, and `sunburst-2.6`, respectively. The CLI does not accept custom model IDs.
 
 Optional controls: `size`, `quality`, `background`, `output_format`, `n` (1–10).
 The default format is PNG. Other defaults are left to the provider. Quality options
@@ -36,6 +37,7 @@ All jobs are validated before the first request, then run sequentially.
 
 ```jsonl
 {"prompt":"Studio product photograph of a white ceramic cup","model":"flare","out":"output/imagegen/cup.png"}
+{"prompt":"Studio product photograph of a white ceramic cup","model":"sunburst-2.6","out":"output/imagegen/cup-2.6.png"}
 {"prompt":"Change only the background to white; preserve the product","model":"sunburst","image":["input/product.png"],"out":"output/imagegen/edited.png"}
 ```
 
@@ -50,7 +52,8 @@ on POSIX systems. The API key is stored as local plaintext, not in the plugin or
 npm package. On Windows, restrict file access with the current user's permissions.
 `LINGER_IMAGE_GEN_CONFIG` selects another config path. `BASE_API` and `API_KEY`
 environment variables override file values. Without a config file, these two
-variables enable both fixed models and default to Flare.
+variables enable all fixed models and default to Flare. Existing config files keep
+their enabled models and default; use `configure` to enable a newly added model.
 
 ## Protocol reference
 

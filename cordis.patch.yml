@@ -1,0 +1,9 @@
+# dsh bundle patch: inserts this plugin into a DeepSeek Harness profile's
+# layer stack. The row name resolves from the profile's own node_modules,
+# where `dsh plugin --profile <name> add linger-image-gen` installed it.
+#
+# The package also ships a Codex plugin (.codex-plugin/plugin.json + skills/);
+# both surfaces are installed from this one package.
+- insert:
+    - id: linger-image-gen
+      name: linger-image-gen

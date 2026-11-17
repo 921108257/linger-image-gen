@@ -6,11 +6,12 @@ import { randomUUID } from 'node:crypto';
 export const MODELS = Object.freeze([
   Object.freeze({ id: 'gpt-image-2.5-flare', name: 'GPT-Image-2.5 Flare', alias: 'flare' }),
   Object.freeze({ id: 'gpt-image-2.5-sunburst', name: 'GPT-Image-2.5 Sunburst', alias: 'sunburst' }),
+  Object.freeze({ id: 'gpt-image-2.6-sunburst', name: 'GPT-Image-2.6 Sunburst', alias: 'sunburst-2.6' }),
 ]);
 
 export function modelId(value) {
   const model = MODELS.find((item) => item.id === value || item.alias === value);
-  if (!model) throw new Error('模型只能选择 flare 或 sunburst，不能自定义模型 ID。');
+  if (!model) throw new Error(`模型只能选择 ${MODELS.map((item) => item.alias).join('、')} 或对应固定完整 ID，不能自定义模型 ID。`);
   return model.id;
 }
 

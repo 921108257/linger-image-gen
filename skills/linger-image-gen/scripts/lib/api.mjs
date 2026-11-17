@@ -31,13 +31,21 @@ function httpError(status) {
   return new Error(`接口请求失败（HTTP ${status}）。${hints[status] ?? '请检查服务状态后再试。'}未自动重试。`);
 }
 
-async function request(url, options = {}, { timeout = 180000, fetchImpl = fetch } = {}) {
+async function request(url, options = {}, { timeout = 180000, fetchImpl = fetch, signal } = {}) {
+  // Cancellation uses one dedicated controller instead of AbortSignal.any so
+  // the two causes stay distinguishable: a caller abort is a user decision,
+  // the request deadline is a transport fault.
+  const deadline = AbortSignal.timeout(timeout);
+  const controller = new AbortController();
+  const abort = (reason) => controller.abort(reason);
+  if (signal) {
+    if (signal.aborted) abort(signal.reason);
+    else signal.addEventListener('abort', () => abort(signal.reason), { once: true });
+  }
+  if (deadline.aborted) abort(deadline.reason);
+  else deadline.addEventListener('abort', () => abort(deadline.reason), { once: true });
   try {
-    const response = await fetchImpl(url, {
-      ...options,
-      redirect: 'error',
-      signal: AbortSignal.timeout(timeout),
-    });
+    const response = await fetchImpl(url, { ...options, redirect: 'error', signal: controller.signal });
     if (!response.ok) {
       await response.body?.cancel();
       throw httpError(response.status);
@@ -45,6 +53,8 @@ async function request(url, options = {}, { timeout = 180000, fetchImpl = fetch 
     return await limitedBody(response);
   } catch (error) {
     if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+      // A cancelled call is a user decision, not a retryable transport fault.
+      if (signal?.aborted) throw new Error('请求已取消；服务端可能仍在处理，未自动重试。');
       throw new Error('接口请求超时；服务端可能仍在处理，未自动重试。');
     }
     if (error instanceof TypeError) throw new Error('网络请求失败，请检查 BASE_API、网络和 TLS 配置。未自动重试。');

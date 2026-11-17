@@ -1,25 +1,25 @@
 ---
 name: linger-image-gen
-description: Generate or edit raster images through the user's Linger API using GPT-Image-2.5 Flare or Sunburst. Use for Linger Image Gen requests, these two models, or configured Linger image workflows including reference images, transparent assets, and batches.
+description: Generate or edit raster images through the user's Linger API using GPT-Image-2.5 Flare, GPT-Image-2.5 Sunburst, or GPT-Image-2.6 Sunburst. Use for Linger Image Gen requests, these models, or configured Linger image workflows including reference images, transparent assets, and batches.
 ---
 
 # Linger Image Gen
 
-Use the bundled Node.js CLI for this plugin. It calls the user's configured API,
-with credentials read locally by the script. Node.js 22.13 or later is required.
-Resolve `scripts/linger-image-gen.mjs` relative to this SKILL.md and use its
-absolute path in commands. It has no runtime npm dependencies.
+Use the bundled Node.js CLI, and the plugin's native tools when the surface provides
+them. Both call the user's configured API with credentials read locally by the script.
+Node.js 22.13 or later is required. Resolve `scripts/linger-image-gen.mjs` relative to
+this SKILL.md and use its absolute path in commands. It has no runtime npm dependencies.
 
 ## Configuration and model selection
 
-- Run `node <skill-dir>/scripts/linger-image-gen.mjs models` to see enabled models.
-- The only model IDs are `gpt-image-2.5-flare` and `gpt-image-2.5-sunburst`.
-  CLI aliases are `flare` and `sunburst`. IDs cannot be customized.
+- Run `node <cli> models` to see enabled models.
+- The fixed model IDs are `gpt-image-2.5-flare`, `gpt-image-2.5-sunburst`, and
+  `gpt-image-2.6-sunburst`. Their CLI aliases are `flare`, `sunburst`, and
+  `sunburst-2.6`, respectively. IDs cannot be customized.
 - Honor the configured default if the user does not choose a model. An explicitly
-  requested disabled model requires the user to enable it via the local terminal
-  wizard: `npx linger-image-gen configure`.
-- If configuration is missing, direct the user to run `npx linger-image-gen`
-  in their terminal. Do not ask for an API key in chat or read/print its config file.
+  requested disabled model requires the user to enable it in a terminal wizard.
+- If configuration is missing, direct the user to the installer for their surface
+  and never ask for an API key in chat or read/print the config file.
 - `config` prints redacted settings. `doctor` sends `GET /models` without generating
   an image; a listed model does not guarantee generation permission.
 - Do not silently fall back to other models or providers after a failure.
@@ -34,8 +34,9 @@ absolute path in commands. It has no runtime npm dependencies.
 3. Keep the user's prompt specifics. For generic requests, add only details that
    materially clarify composition, intended use, text or constraints. See
    [references/prompting.md](references/prompting.md) when structuring complex prompts.
-4. Run the bundled script. Use `--prompt-file` for multiline prompts or text with
-   shell-sensitive characters. Use structured file edits to prepare prompt files;
+4. Run the bundled script or the native tool. Use `--prompt-file` for multiline
+   prompts or text with shell-sensitive characters on the CLI, or pass the prompt
+   straight to the native tool. Use structured file edits to prepare prompt files;
    never interpolate untrusted prompt text into shell commands.
 5. Inspect the resulting images. When a requested constraint fails, refine one
    relevant part of the prompt and preserve the remaining invariants.
@@ -44,13 +45,14 @@ absolute path in commands. It has no runtime npm dependencies.
 
 ## Commands
 
-Paths below are examples. Replace `<skill-dir>` with the actual loaded skill directory.
+Replace `<cli>` with the absolute path to `scripts/linger-image-gen.mjs` in this
+skill directory, or the CLI path supplied by the host:
 
 ```bash
-node <skill-dir>/scripts/linger-image-gen.mjs generate --prompt-file tmp/imagegen/prompt.txt --out output/imagegen/product.png
-node <skill-dir>/scripts/linger-image-gen.mjs generate --model sunburst --prompt-file tmp/imagegen/prompt.txt --background transparent --out output/imagegen/cutout.png
-node <skill-dir>/scripts/linger-image-gen.mjs edit --image input.png --prompt-file tmp/imagegen/edit.txt --out output/imagegen/edited.png
-node <skill-dir>/scripts/linger-image-gen.mjs generate-batch --input tmp/imagegen/jobs.jsonl
+node "<cli>" generate --prompt-file tmp/imagegen/prompt.txt --out output/imagegen/product.png
+node "<cli>" generate --model sunburst-2.6 --prompt-file tmp/imagegen/prompt.txt --background transparent --out output/imagegen/cutout.png
+node "<cli>" edit --image input.png --prompt-file tmp/imagegen/edit.txt --out output/imagegen/edited.png
+node "<cli>" generate-batch --input tmp/imagegen/jobs.jsonl
 ```
 
 Use `--help` for all CLI flags and [references/api.md](references/api.md) for API

@@ -1,7 +1,7 @@
 {
   "name": "linger-image-gen",
-  "version": "0.1.0",
-  "description": "Linger Image Gen: guided Codex plugin installer for GPT-Image-2.5 Flare and Sunburst",
+  "version": "0.2.0",
+  "description": "Linger Image Gen: guided installer for GPT-Image-2.5 Flare, GPT-Image-2.5 Sunburst, and GPT-Image-2.6 Sunburst, with Codex and DeepSeek Harness (dsh) surfaces",
   "author": "Linger",
   "repository": {
     "type": "git",
@@ -9,12 +9,60 @@
   },
   "homepage": "https://github.com/921108257/linger-image-gen#readme",
   "bugs": { "url": "https://github.com/921108257/linger-image-gen/issues" },
-  "keywords": ["codex", "codex-plugin", "image-generation", "gpt-image", "linger"],
+  "keywords": [
+    "codex",
+    "codex-plugin",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "image-generation",
+    "gpt-image",
+    "linger"
+  ],
   "type": "module",
   "bin": { "linger-image-gen": "bin/linger-image-gen.mjs" },
+  "exports": {
+    ".": "./lib/index.mjs",
+    "./package.json": "./package.json"
+  },
   "engines": { "node": ">=22.13.0" },
-  "files": ["bin/", "src/", ".codex-plugin/", "skills/", "README.md", "LICENSE"],
+  "files": [
+    "bin/",
+    "src/",
+    "lib/",
+    ".codex-plugin/",
+    "skills/",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
   "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "compatibility": {
+      "dsh": ">=0.1.5-rc.1",
+      "dshReleases": {
+        "0.1.5-rc.1": "compatible"
+      }
+    }
+  },
+  "dshhub": {
+    "schemaVersion": 1,
+    "displayName": "Linger Image Gen",
+    "summary": "通过自定义 OpenAI 兼容接口使用 GPT-Image-2.5 Flare、GPT-Image-2.5 Sunburst 和 GPT-Image-2.6 Sunburst 生成、编辑图片,同时提供 dsh 原生工具、内置技能与 Codex 插件面。",
+    "categories": ["图像", "工具", "效率"],
+    "surfaces": ["host", "skill", "codex"],
+    "capabilities": {
+      "provides": ["tool:linger_image_gen", "tool:linger_image_doctor", "skill:linger-image-gen"]
+    },
+    "compatibility": {
+      "dsh": ">=0.1.5-rc.1",
+      "node": ">=22.13.0"
+    },
+    "permissions": {
+      "network": ["用户配置的 BASE_API(Bearer 认证的 OpenAI 兼容图像接口)"]
+    }
+  },
   "scripts": {
     "test": "node --test",
     "check": "node scripts/check.mjs",

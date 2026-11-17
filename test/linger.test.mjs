@@ -43,14 +43,26 @@ test('normalizes API roots and rejects credentials, full endpoints, and non-http
   }
 });
 
-test('only the two exact fixed IDs may be enabled; default must be enabled', () => {
+test('only exact fixed IDs may be enabled; default must be enabled', () => {
   for (const enabledModels of [[], ['custom'], ['flare'], [MODELS[0].id, 'custom']]) {
     assert.throws(() => validateConfig({ ...baseConfig(), enabledModels }));
   }
   assert.throws(() => validateConfig({ ...baseConfig(), enabledModels: [MODELS[1].id] }));
   const config = { ...baseConfig(), enabledModels: [MODELS[0].id] };
   assert.throws(() => validateJob({ prompt: 'hello', model: 'sunburst' }, config), /未启用/);
+  assert.throws(() => validateJob({ prompt: 'hello', model: 'sunburst-2.6' }, config), /未启用/);
   assert.throws(() => validateJob({ prompt: 'hello', model: 'custom' }, config), /不能自定义/);
+  for (const [alias, id] of [
+    ['flare', 'gpt-image-2.5-flare'],
+    ['sunburst', 'gpt-image-2.5-sunburst'],
+    ['sunburst-2.6', 'gpt-image-2.6-sunburst'],
+  ]) {
+    for (const model of [alias, id]) {
+      assert.equal(validateJob({ prompt: 'hello', model }, baseConfig()).model, id);
+    }
+  }
+  const nextDefault = validateConfig({ ...baseConfig(), defaultModel: 'gpt-image-2.6-sunburst' });
+  assert.equal(validateJob({ prompt: 'hello' }, nextDefault).model, 'gpt-image-2.6-sunburst');
 });
 
 test('config is private, redacted, and environment overrides are validated', async (t) => {
@@ -64,6 +76,20 @@ test('config is private, redacted, and environment overrides are validated', asy
   await assert.rejects(() => readConfig({ path, env: { API_KEY: 'bad\nheader' } }), /控制字符/);
 });
 
+test('existing configurations keep their enabled models and default after an upgrade', async (t) => {
+  const path = join(await temporary(t), 'config.json');
+  const previous = {
+    ...baseConfig(),
+    enabledModels: ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'],
+    defaultModel: 'gpt-image-2.5-sunburst',
+  };
+  await saveConfig(previous, path);
+  const current = await readConfig({ path, env: {} });
+  assert.deepEqual(current.enabledModels, previous.enabledModels);
+  assert.equal(current.defaultModel, previous.defaultModel);
+  assert.throws(() => validateJob({ prompt: 'hello', model: 'sunburst-2.6' }, current), /未启用/);
+});
+
 test('wizard exposes a multi-select of only fixed IDs and selects a default', async () => {
   let choices;
   const config = await collectConfig(baseConfig(), {
@@ -74,12 +100,15 @@ test('wizard exposes a multi-select of only fixed IDs and selects a default', as
   assert.deepEqual(choices.map((c) => c.value), MODELS.map((m) => m.id));
   assert.equal(config.defaultModel, MODELS[1].id);
   assert.equal(config.apiKey, baseConfig().apiKey);
-  const both = await collectConfig(baseConfig(), {
+  const multiple = await collectConfig(baseConfig(), {
     input: async () => 'https://gateway.example', password: async () => 'new-key',
     checkbox: async () => MODELS.map((m) => m.id),
-    select: async (options) => { assert.equal(options.choices.length, 2); return MODELS[1].id; },
+    select: async (options) => {
+      assert.deepEqual(options.choices.map((c) => c.value), MODELS.map((m) => m.id));
+      return 'gpt-image-2.6-sunburst';
+    },
   });
-  assert.equal(both.defaultModel, MODELS[1].id);
+  assert.equal(multiple.defaultModel, 'gpt-image-2.6-sunburst');
 });
 
 test('installer creates a self-contained plugin and registers/activates the personal marketplace', async (t) => {
@@ -98,7 +127,11 @@ test('installer creates a self-contained plugin and registers/activates the pers
   const run = spawnSync(process.execPath, [script, 'models'], { env: { ...process.env, LINGER_IMAGE_GEN_CONFIG: configFile }, encoding: 'utf8', cwd: tmpdir() });
   assert.equal(run.status, 0, run.stderr);
   assert.ok(run.stdout.includes(MODELS[1].id));
+  assert.ok(run.stdout.includes('gpt-image-2.6-sunburst'));
   assert.ok(!run.stdout.includes(baseConfig().apiKey));
+  const skill = await readFile(join(result.destination, 'skills/linger-image-gen/SKILL.md'), 'utf8');
+  assert.equal(skill.includes('{{'), false);
+  assert.match(skill, /node "<cli>" generate --model sunburst-2\.6/);
 });
 
 test('reinstall preserves marketplace metadata, order, other entries and existing policy', async (t) => {
@@ -151,12 +184,14 @@ test('generation uses the configured endpoint, selected fixed model, and bearer 
     res.setHeader('content-type', 'application/json');
     res.end(JSON.stringify({ data: [{ b64_json: PNG.toString('base64') }] }));
   });
-  const images = await createImages({ prompt: 'test', model: 'sunburst' }, { ...baseConfig(), baseApi: `${url}/custom/v1` });
-  assert.deepEqual(images, [PNG]);
-  assert.equal(captured.url, '/custom/v1/images/generations');
-  assert.equal(captured.headers.authorization, `Bearer ${baseConfig().apiKey}`);
-  assert.equal(captured.body.model, MODELS[1].id);
-  assert.equal(captured.body.response_format, undefined);
+  for (const model of ['sunburst', 'sunburst-2.6', 'gpt-image-2.6-sunburst']) {
+    const images = await createImages({ prompt: 'test', model }, { ...baseConfig(), baseApi: `${url}/custom/v1` });
+    assert.deepEqual(images, [PNG]);
+    assert.equal(captured.url, '/custom/v1/images/generations');
+    assert.equal(captured.headers.authorization, `Bearer ${baseConfig().apiKey}`);
+    assert.equal(captured.body.model, model === 'sunburst' ? 'gpt-image-2.5-sunburst' : 'gpt-image-2.6-sunburst');
+    assert.equal(captured.body.response_format, undefined);
+  }
 });
 
 test('editing sends real multipart images and mask with content types', async (t) => {
@@ -168,12 +203,13 @@ test('editing sends real multipart images and mask with content types', async (t
     captured = { url: req.url, headers: req.headers, body: await body(req) };
     res.end(JSON.stringify({ data: [{ b64_json: PNG.toString('base64') }] }));
   });
-  await createImages({ prompt: 'edit', image: [input], mask: input }, { ...baseConfig(), baseApi: `${url}/v1` });
+  await createImages({ prompt: 'edit', model: 'sunburst-2.6', image: [input], mask: input }, { ...baseConfig(), baseApi: `${url}/v1` });
   assert.equal(captured.url, '/v1/images/edits');
   assert.match(captured.headers['content-type'], /multipart\/form-data; boundary=/);
   assert.match(captured.body, /name="image\[\]"; filename="input.png"/);
   assert.match(captured.body, /name="mask"/);
   assert.match(captured.body, /Content-Type: image\/png/);
+  assert.match(captured.body, /name="model"\r\n\r\ngpt-image-2\.6-sunburst\r\n/);
 });
 
 test('URL image responses are downloaded without forwarding credentials', async (t) => {
@@ -220,7 +256,7 @@ test('doctor checks only the model endpoint and returns availability for selecte
     assert.equal(req.method, 'GET'); assert.equal(req.url, '/v1/models');
     res.end(JSON.stringify({ data: [{ id: MODELS[0].id }] }));
   });
-  assert.deepEqual(await checkModels({ ...baseConfig(), baseApi: `${url}/v1` }), [{ id: MODELS[0].id, listed: true }, { id: MODELS[1].id, listed: false }]);
+  assert.deepEqual(await checkModels({ ...baseConfig(), baseApi: `${url}/v1` }), MODELS.map((model, index) => ({ id: model.id, listed: index === 0 })));
 });
 
 test('image output is non-destructive even for concurrent writes', async (t) => {
